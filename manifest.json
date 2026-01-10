@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "MockInterceptor",
+  "version": "1.0.0",
+  "description": "拦截浏览器请求并返回配置的模拟数据",
+  "permissions": [
+    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+  "options_page": "options/index.html",
+  "action": {
+    "default_popup": "options/index.html",
+    "default_title": "MockInterceptor"
+  }
+}
+
