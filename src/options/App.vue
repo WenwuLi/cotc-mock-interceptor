@@ -9,7 +9,7 @@
             <div class="sidebar-title" v-show="!sidebarCollapsed">
               <span>项目</span>
             </div>
-            <div class="sidebar-actions" v-show="!sidebarCollapsed">
+            <div class="sidebar-actions">
               <a-button
                 type="text"
                 size="small"
@@ -33,19 +33,20 @@
                   <PlusOutlined />
                 </template>
               </a-button>
+              <a-button
+                v-if="!isSmallScreen"
+                type="text"
+                size="small"
+                @click="toggleSidebar"
+                class="sidebar-toggle-btn"
+                :title="sidebarCollapsed ? '展开侧边栏' : '收缩侧边栏'"
+              >
+                <template #icon>
+                  <MenuFoldOutlined v-if="!sidebarCollapsed" />
+                  <MenuUnfoldOutlined v-else />
+                </template>
+              </a-button>
             </div>
-            <a-button
-              type="text"
-              size="small"
-              @click="toggleSidebar"
-              class="sidebar-toggle-btn"
-              :title="sidebarCollapsed ? '展开侧边栏' : '收缩侧边栏'"
-            >
-              <template #icon>
-                <ArrowLeftOutlined v-if="!sidebarCollapsed" />
-                <ArrowLeftOutlined v-else style="transform: rotate(180deg);" />
-              </template>
-            </a-button>
           </div>
           <div class="sidebar-content">
             <div class="sidebar-search">
@@ -77,7 +78,11 @@
                 <div class="sidebar-item-label" v-show="!sidebarCollapsed">
                   {{ project.name }}
                 </div>
-                <div class="sidebar-item-actions" @click.stop v-show="!sidebarCollapsed">
+                <div
+                  class="sidebar-item-actions"
+                  @click.stop
+                  v-show="!sidebarCollapsed"
+                >
                   <a-switch
                     :checked="project.enabled"
                     @change="(checked: boolean) => handleToggleProject(project, checked)"
@@ -105,8 +110,14 @@
                 <GlobalOutlined />
               </div>
               <h2 class="empty-title">欢迎使用 MockInterceptor</h2>
-              <p class="empty-description">从左侧选择一个项目，或创建新项目开始</p>
-              <a-button type="primary" size="large" @click="handleCreateProject">
+              <p class="empty-description">
+                从左侧选择一个项目，或创建新项目开始
+              </p>
+              <a-button
+                type="primary"
+                size="large"
+                @click="handleCreateProject"
+              >
                 <template #icon>
                   <PlusOutlined />
                 </template>
@@ -132,7 +143,11 @@
                         <SearchOutlined />
                       </template>
                     </a-input>
-                    <a-select v-model:value="filterType" size="small" class="toolbar-filter">
+                    <a-select
+                      v-model:value="filterType"
+                      size="small"
+                      class="toolbar-filter"
+                    >
                       <a-select-option value="all">全部</a-select-option>
                       <a-select-option value="enabled">已启用</a-select-option>
                       <a-select-option value="disabled">已禁用</a-select-option>
@@ -141,12 +156,18 @@
                 </div>
                 <div class="toolbar-right">
                   <div class="toolbar-group">
-                    <a-button size="small" @click="handleEnableAll">启用全部</a-button>
-                    <a-button size="small" @click="handleDisableAll">禁用全部</a-button>
-                    <a-button size="small" danger @click="handleClearList">清空</a-button>
-                    <a-button 
-                      type="primary" 
-                      size="small" 
+                    <a-button size="small" @click="handleEnableAll"
+                      >启用全部</a-button
+                    >
+                    <a-button size="small" @click="handleDisableAll"
+                      >禁用全部</a-button
+                    >
+                    <a-button size="small" danger @click="handleClearList"
+                      >清空</a-button
+                    >
+                    <a-button
+                      type="primary"
+                      size="small"
                       @click="handleCreateRule"
                     >
                       <template #icon>
@@ -160,7 +181,36 @@
               <div class="editor-main">
                 <div class="editor-header">
                   <div class="editor-title-section">
-                    <h1 class="editor-title">{{ currentProject.name }}</h1>
+                    <div class="editor-title-wrapper">
+                      <h1 class="editor-title">{{ currentProject.name }}</h1>
+                      <div class="editor-title-actions">
+                        <a-button
+                          type="text"
+                          size="small"
+                          class="editor-title-action-btn"
+                          @click="() => handleEditProject(currentProject)"
+                          title="编辑项目名称"
+                        >
+                          <template #icon>
+                            <EditOutlined />
+                          </template>
+                        </a-button>
+                        <a-button
+                          type="text"
+                          size="small"
+                          danger
+                          class="editor-title-action-btn"
+                          @click="
+                            () => handleDeleteProjectConfirm(currentProject)
+                          "
+                          title="删除项目"
+                        >
+                          <template #icon>
+                            <DeleteOutlined />
+                          </template>
+                        </a-button>
+                      </div>
+                    </div>
                     <div class="editor-meta">
                       <span class="meta-label">项目状态:</span>
                       <a-switch
@@ -168,7 +218,9 @@
                         @change="(checked: boolean) => handleToggleProject(currentProject, checked)"
                         size="small"
                       />
-                      <span class="meta-item">{{ currentProject.enabled ? '已启用' : '已禁用' }}</span>
+                      <span class="meta-item">{{
+                        currentProject.enabled ? "已启用" : "已禁用"
+                      }}</span>
                     </div>
                   </div>
                 </div>
@@ -193,9 +245,16 @@
         @ok="handleSaveProject"
         @cancel="handleCancelProject"
       >
-        <a-form :model="projectForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+        <a-form
+          :model="projectForm"
+          :label-col="{ span: 6 }"
+          :wrapper-col="{ span: 18 }"
+        >
           <a-form-item label="项目名称" required>
-            <a-input v-model:value="projectForm.name" placeholder="请输入项目名称" />
+            <a-input
+              v-model:value="projectForm.name"
+              placeholder="请输入项目名称"
+            />
           </a-form-item>
         </a-form>
       </a-modal>
@@ -212,28 +271,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import {
-  CheckCircleOutlined,
   GlobalOutlined,
   PlusOutlined,
   SearchOutlined,
-  ArrowLeftOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   BulbOutlined,
-} from '@ant-design/icons-vue'
-import { message, theme as antdTheme } from 'ant-design-vue'
-import type { Project, InterceptionRule } from '@/types'
-import { StorageManager } from '@/utils/storage'
-import { useTheme, getThemeColors } from '@/theme/theme'
-import ProjectList from '@/components/ProjectList.vue'
-import InterceptionList from '@/components/InterceptionList.vue'
-import OverrideModal from '@/components/OverrideModal.vue'
+  DeleteOutlined,
+  EditOutlined,
+} from "@ant-design/icons-vue";
+import { message, theme as antdTheme, Modal } from "ant-design-vue";
+import type { Project, InterceptionRule } from "@/types";
+import { StorageManager } from "@/utils/storage";
+import { useTheme, getThemeColors } from "@/theme/theme";
+import InterceptionList from "@/components/InterceptionList.vue";
+import OverrideModal from "@/components/OverrideModal.vue";
 
 // 主题系统
-const { theme, toggleTheme } = useTheme()
+const { theme, toggleTheme } = useTheme();
 const themeConfig = computed(() => {
-  const colors = getThemeColors()
-  const isDark = theme.value === 'dark'
+  const colors = getThemeColors();
+  const isDark = theme.value === "dark";
   return {
     algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
     token: {
@@ -253,89 +313,96 @@ const themeConfig = computed(() => {
       borderRadius: 6,
       wireframe: false,
     },
-  }
-})
+  };
+});
 
 // 状态
-const projects = ref<Project[]>([])
-const currentProject = ref<Project | null>(null)
-const searchKeyword = ref('')
-const ruleSearchKeyword = ref('')
-const filterType = ref<'all' | 'enabled' | 'disabled'>('all')
-const activeTab = ref('')
-const isReady = ref(true)
-const sidebarCollapsed = ref(false)
+const projects = ref<Project[]>([]);
+const currentProject = ref<Project | null>(null);
+const searchKeyword = ref("");
+const ruleSearchKeyword = ref("");
+const filterType = ref<"all" | "enabled" | "disabled">("all");
+const activeTab = ref("");
+const isReady = ref(true);
+const isSmallScreen = ref(false);
+const sidebarCollapsed = ref(false);
 
 // 弹窗状态
-const projectModalVisible = ref(false)
-const ruleModalVisible = ref(false)
-const editingProject = ref<Project | null>(null)
-const editingRule = ref<InterceptionRule | null>(null)
+const projectModalVisible = ref(false);
+const ruleModalVisible = ref(false);
+const editingProject = ref<Project | null>(null);
+const editingRule = ref<InterceptionRule | null>(null);
 
 // 表单数据
 const projectForm = ref({
-  name: '',
-})
+  name: "",
+});
 
 // 计算属性
 const filteredProjects = computed(() => {
   if (!searchKeyword.value) {
-    return projects.value
+    return projects.value;
   }
-  const keyword = searchKeyword.value.toLowerCase()
-  return projects.value.filter(p => p.name.toLowerCase().includes(keyword))
-})
+  const keyword = searchKeyword.value.toLowerCase();
+  return projects.value.filter((p) => p.name.toLowerCase().includes(keyword));
+});
 
 const enabledRulesCount = computed(() => {
-  return currentProject.value?.rules.filter(r => r.enabled).length || 0
-})
+  return currentProject.value?.rules.filter((r) => r.enabled).length || 0;
+});
 
 const filteredRules = computed(() => {
   if (!currentProject.value) {
-    return []
+    return [];
   }
-  let rules = currentProject.value.rules
+  let rules = currentProject.value.rules;
 
   // 按状态筛选
-  if (filterType.value === 'enabled') {
-    rules = rules.filter(r => r.enabled)
-  } else if (filterType.value === 'disabled') {
-    rules = rules.filter(r => !r.enabled)
+  if (filterType.value === "enabled") {
+    rules = rules.filter((r) => r.enabled);
+  } else if (filterType.value === "disabled") {
+    rules = rules.filter((r) => !r.enabled);
   }
 
   // 按关键词搜索
   if (ruleSearchKeyword.value) {
-    const keyword = ruleSearchKeyword.value.toLowerCase()
+    const keyword = ruleSearchKeyword.value.toLowerCase();
     rules = rules.filter(
-      r =>
+      (r) =>
         r.name.toLowerCase().includes(keyword) ||
         r.urlPattern.toLowerCase().includes(keyword)
-    )
+    );
   }
 
-  return rules
-})
+  return rules;
+});
 
 // 方法
 const loadProjects = async () => {
-  projects.value = await StorageManager.getProjects()
-  const currentProjectId = (await StorageManager.getAll()).currentProjectId
+  projects.value = await StorageManager.getProjects();
+  const currentProjectId = (await StorageManager.getAll()).currentProjectId;
   if (currentProjectId) {
     currentProject.value =
-      projects.value.find(p => p.id === currentProjectId) || null
+      projects.value.find((p) => p.id === currentProjectId) || null;
   }
-}
+};
 
 const handleCreateProject = () => {
-  editingProject.value = null
-  projectForm.value.name = ''
-  projectModalVisible.value = true
-}
+  editingProject.value = null;
+  projectForm.value.name = "";
+  projectModalVisible.value = true;
+};
+
+const handleEditProject = (project: Project) => {
+  editingProject.value = project;
+  projectForm.value.name = project.name;
+  projectModalVisible.value = true;
+};
 
 const handleSaveProject = async () => {
   if (!projectForm.value.name.trim()) {
-    message.error('请输入项目名称')
-    return
+    message.error("请输入项目名称");
+    return;
   }
 
   try {
@@ -343,8 +410,8 @@ const handleSaveProject = async () => {
       // 更新项目
       await StorageManager.updateProject(editingProject.value.id, {
         name: projectForm.value.name,
-      })
-      message.success('项目更新成功')
+      });
+      // message.success("项目更新成功");
     } else {
       // 创建新项目
       const newProject: Project = {
@@ -353,84 +420,119 @@ const handleSaveProject = async () => {
         enabled: false,
         rules: [],
         createdAt: new Date().toISOString(),
-      }
-      await StorageManager.addProject(newProject)
-      message.success('项目创建成功')
+      };
+      await StorageManager.addProject(newProject);
+      message.success("项目创建成功");
     }
-    projectModalVisible.value = false
-    await loadProjects()
+    projectModalVisible.value = false;
+    await loadProjects();
+    // 如果编辑的是当前项目，更新当前项目显示
+    if (
+      editingProject.value &&
+      currentProject.value?.id === editingProject.value.id
+    ) {
+      const updated = await StorageManager.getProjects();
+      currentProject.value =
+        updated.find((p) => p.id === editingProject.value!.id) || null;
+    }
   } catch (error) {
-    console.error('保存项目失败:', error)
-    message.error('保存项目失败')
+    console.error("保存项目失败:", error);
+    message.error("保存项目失败");
   }
-}
+};
 
 const handleCancelProject = () => {
-  projectModalVisible.value = false
-  editingProject.value = null
-  projectForm.value.name = ''
-}
+  projectModalVisible.value = false;
+  editingProject.value = null;
+  projectForm.value.name = "";
+};
 
 const handleSelectProject = async (project: Project) => {
-  await StorageManager.setCurrentProject(project.id)
-  currentProject.value = project
-  activeTab.value = project.id
-  // 选择项目后自动收缩侧边栏
-  sidebarCollapsed.value = true
-}
+  await StorageManager.setCurrentProject(project.id);
+  currentProject.value = project;
+  activeTab.value = project.id;
+  // // 选择项目后自动收缩侧边栏
+  // sidebarCollapsed.value = true
+};
 
 const toggleSidebar = () => {
-  sidebarCollapsed.value = !sidebarCollapsed.value
-}
+  // 小屏幕时不允许展开
+  if (isSmallScreen.value) {
+    return;
+  }
+  sidebarCollapsed.value = !sidebarCollapsed.value;
+};
+
+// 检测屏幕尺寸
+const checkScreenSize = () => {
+  isSmallScreen.value = window.innerWidth < 360;
+  // 小屏幕时强制收起侧边栏
+  if (isSmallScreen.value) {
+    sidebarCollapsed.value = true;
+  }
+};
 
 const handleBackToList = async () => {
-  await StorageManager.setCurrentProject(undefined)
-  currentProject.value = null
-}
+  await StorageManager.setCurrentProject(undefined);
+  currentProject.value = null;
+};
 
 const handleToggleProject = async (project: Project, enabled: boolean) => {
-  await StorageManager.updateProject(project.id, { enabled })
-  await loadProjects()
+  await StorageManager.updateProject(project.id, { enabled });
+  await loadProjects();
   if (currentProject.value?.id === project.id) {
-    currentProject.value.enabled = enabled
+    currentProject.value.enabled = enabled;
   }
-  message.success(enabled ? '项目已启用' : '项目已禁用')
-}
+  // message.success(enabled ? "项目已启用" : "项目已禁用");
+};
+
+const handleDeleteProjectConfirm = (project: Project) => {
+  Modal.confirm({
+    title: "确认删除项目",
+    content: `确定要删除项目 "${project.name}" 吗？此操作将同时删除该项目下的所有规则，且无法恢复。`,
+    okText: "删除",
+    okType: "danger",
+    cancelText: "取消",
+    onOk: async () => {
+      await handleDeleteProject(project);
+    },
+  });
+};
 
 const handleDeleteProject = async (project: Project) => {
   try {
-    await StorageManager.deleteProject(project.id)
-    message.success('项目删除成功')
+    await StorageManager.deleteProject(project.id);
+    // message.success("项目删除成功");
     if (currentProject.value?.id === project.id) {
-      currentProject.value = null
+      currentProject.value = null;
     }
-    await loadProjects()
+    await loadProjects();
   } catch (error) {
-    console.error('删除项目失败:', error)
-    message.error('删除项目失败')
+    console.error("删除项目失败:", error);
+    message.error("删除项目失败");
   }
-}
+};
 
 const handleTabChange = (key: string) => {
-  const project = projects.value.find(p => p.id === key)
+  const project = projects.value.find((p) => p.id === key);
   if (project) {
-    handleSelectProject(project)
+    handleSelectProject(project);
   }
-}
+};
 
 const handleCreateRule = () => {
-  editingRule.value = null
-  ruleModalVisible.value = true
-}
+  editingRule.value = null;
+  ruleModalVisible.value = true;
+};
 
 const handleEditRule = (rule: InterceptionRule) => {
-  editingRule.value = { ...rule }
-  ruleModalVisible.value = true
-}
+  editingRule.value = { ...rule };
+  ruleModalVisible.value = true;
+};
 
 const handleSaveRule = async (rule: InterceptionRule) => {
   if (!currentProject.value) {
-    return
+    return;
   }
 
   try {
@@ -440,112 +542,133 @@ const handleSaveRule = async (rule: InterceptionRule) => {
         currentProject.value.id,
         editingRule.value.id,
         rule
-      )
-      message.success('规则更新成功')
+      );
+      // message.success("规则更新成功");
     } else {
       // 创建新规则
       const newRule: InterceptionRule = {
         ...rule,
         id: `rule_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         createdAt: new Date().toISOString(),
-      }
-      await StorageManager.addRule(currentProject.value.id, newRule)
-      message.success('规则创建成功')
+      };
+      await StorageManager.addRule(currentProject.value.id, newRule);
+      message.success("规则创建成功");
     }
-    ruleModalVisible.value = false
-    editingRule.value = null
-    await loadProjects()
+    ruleModalVisible.value = false;
+    editingRule.value = null;
+    await loadProjects();
     if (currentProject.value) {
-      const updated = await StorageManager.getProjects()
-      currentProject.value = updated.find(p => p.id === currentProject.value!.id) || null
+      const updated = await StorageManager.getProjects();
+      currentProject.value =
+        updated.find((p) => p.id === currentProject.value!.id) || null;
     }
   } catch (error) {
-    console.error('保存规则失败:', error)
-    message.error('保存规则失败')
+    console.error("保存规则失败:", error);
+    message.error("保存规则失败");
   }
-}
+};
 
 const handleCancelRule = () => {
-  ruleModalVisible.value = false
-  editingRule.value = null
-}
+  ruleModalVisible.value = false;
+  editingRule.value = null;
+};
 
 const handleToggleRule = async (rule: InterceptionRule, enabled: boolean) => {
   if (!currentProject.value) {
-    return
+    return;
   }
-  await StorageManager.updateRule(currentProject.value.id, rule.id, { enabled })
-  await loadProjects()
+  await StorageManager.updateRule(currentProject.value.id, rule.id, {
+    enabled,
+  });
+  await loadProjects();
   if (currentProject.value) {
-    const updated = await StorageManager.getProjects()
-    currentProject.value = updated.find(p => p.id === currentProject.value!.id) || null
+    const updated = await StorageManager.getProjects();
+    currentProject.value =
+      updated.find((p) => p.id === currentProject.value!.id) || null;
   }
-  message.success(enabled ? '规则已启用' : '规则已禁用')
-}
+  // message.success(enabled ? "规则已启用" : "规则已禁用");
+};
 
 const handleDeleteRule = async (rule: InterceptionRule) => {
   if (!currentProject.value) {
-    return
+    return;
   }
   try {
-    await StorageManager.deleteRule(currentProject.value.id, rule.id)
-    message.success('规则删除成功')
-    await loadProjects()
+    await StorageManager.deleteRule(currentProject.value.id, rule.id);
+    message.success("规则删除成功");
+    await loadProjects();
     if (currentProject.value) {
-      const updated = await StorageManager.getProjects()
-      currentProject.value = updated.find(p => p.id === currentProject.value!.id) || null
+      const updated = await StorageManager.getProjects();
+      currentProject.value =
+        updated.find((p) => p.id === currentProject.value!.id) || null;
     }
   } catch (error) {
-    console.error('删除规则失败:', error)
-    message.error('删除规则失败')
+    console.error("删除规则失败:", error);
+    message.error("删除规则失败");
   }
-}
+};
 
 const handleEnableAll = async () => {
   if (!currentProject.value) {
-    return
+    return;
   }
-  const allEnabled = currentProject.value.rules.map(r => ({ ...r, enabled: true }))
-  await StorageManager.updateProjectRules(currentProject.value.id, allEnabled)
-  message.success('已启用所有规则')
-  await loadProjects()
+  const allEnabled = currentProject.value.rules.map((r) => ({
+    ...r,
+    enabled: true,
+  }));
+  await StorageManager.updateProjectRules(currentProject.value.id, allEnabled);
+  message.success("已启用所有规则");
+  await loadProjects();
   if (currentProject.value) {
-    const updated = await StorageManager.getProjects()
-    currentProject.value = updated.find(p => p.id === currentProject.value!.id) || null
+    const updated = await StorageManager.getProjects();
+    currentProject.value =
+      updated.find((p) => p.id === currentProject.value!.id) || null;
   }
-}
+};
 
 const handleDisableAll = async () => {
   if (!currentProject.value) {
-    return
+    return;
   }
-  const allDisabled = currentProject.value.rules.map(r => ({ ...r, enabled: false }))
-  await StorageManager.updateProjectRules(currentProject.value.id, allDisabled)
-  message.success('已禁用所有规则')
-  await loadProjects()
+  const allDisabled = currentProject.value.rules.map((r) => ({
+    ...r,
+    enabled: false,
+  }));
+  await StorageManager.updateProjectRules(currentProject.value.id, allDisabled);
+  message.success("已禁用所有规则");
+  await loadProjects();
   if (currentProject.value) {
-    const updated = await StorageManager.getProjects()
-    currentProject.value = updated.find(p => p.id === currentProject.value!.id) || null
+    const updated = await StorageManager.getProjects();
+    currentProject.value =
+      updated.find((p) => p.id === currentProject.value!.id) || null;
   }
-}
+};
 
 const handleClearList = async () => {
   if (!currentProject.value) {
-    return
+    return;
   }
-  await StorageManager.updateProjectRules(currentProject.value.id, [])
-  message.success('已清空规则列表')
-  await loadProjects()
+  await StorageManager.updateProjectRules(currentProject.value.id, []);
+  message.success("已清空规则列表");
+  await loadProjects();
   if (currentProject.value) {
-    const updated = await StorageManager.getProjects()
-    currentProject.value = updated.find(p => p.id === currentProject.value!.id) || null
+    const updated = await StorageManager.getProjects();
+    currentProject.value =
+      updated.find((p) => p.id === currentProject.value!.id) || null;
   }
-}
+};
 
 // 生命周期
 onMounted(() => {
-  loadProjects()
-})
+  loadProjects();
+  checkScreenSize();
+  // 监听窗口大小变化
+  window.addEventListener("resize", checkScreenSize);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("resize", checkScreenSize);
+});
 </script>
 
 <style scoped>
@@ -556,7 +679,8 @@ onMounted(() => {
   background: var(--color-bg-primary);
   display: flex;
   flex-direction: column;
-  transition: background-color var(--transition-normal) var(--easing-ease-in-out);
+  transition: background-color var(--transition-normal)
+    var(--easing-ease-in-out);
 }
 
 /* ========== VS Code 工作台布局 ========== */
@@ -598,6 +722,10 @@ onMounted(() => {
 .sidebar.collapsed .sidebar-header {
   justify-content: center;
   padding: 0;
+  flex-direction: column;
+  height: auto;
+  min-height: auto;
+  padding: var(--spacing-xs) 0;
 }
 
 .sidebar-title {
@@ -611,6 +739,11 @@ onMounted(() => {
 .sidebar-actions {
   display: flex;
   align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.sidebar.collapsed .sidebar-actions {
+  flex-direction: column-reverse;
   gap: var(--spacing-xs);
 }
 
@@ -637,8 +770,6 @@ onMounted(() => {
 }
 
 .sidebar-toggle-btn {
-  position: absolute;
-  right: var(--spacing-xs);
   color: var(--color-text-secondary);
   padding: 0;
   width: 20px;
@@ -646,12 +777,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10;
-}
-
-.sidebar.collapsed .sidebar-toggle-btn {
-  position: static;
-  right: auto;
 }
 
 .sidebar-toggle-btn:hover {
@@ -757,6 +882,7 @@ onMounted(() => {
 .sidebar-item-actions {
   display: flex;
   align-items: center;
+  gap: var(--spacing-xs);
   opacity: 0;
   transition: opacity var(--transition-fast) var(--easing-ease-in-out);
   flex-shrink: 0;
@@ -861,12 +987,51 @@ onMounted(() => {
   gap: var(--spacing-sm);
 }
 
+.editor-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
 .editor-title {
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
   margin: 0;
   line-height: 1.2;
+}
+
+.editor-title-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  opacity: 0;
+  transition: opacity var(--transition-fast) var(--easing-ease-in-out);
+}
+
+.editor-title-wrapper:hover .editor-title-actions {
+  opacity: 1;
+}
+
+.editor-title-action-btn {
+  color: var(--color-text-tertiary);
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.editor-title-action-btn:hover {
+  color: var(--color-primary);
+  background: var(--color-bg-secondary);
+}
+
+.editor-title-action-btn.danger:hover {
+  color: var(--color-danger);
+  background: var(--color-danger-light);
 }
 
 .editor-meta {
@@ -938,7 +1103,6 @@ onMounted(() => {
   max-width: 400px;
 }
 
-
 /* ========== 滚动条样式 ========== */
 .sidebar-list::-webkit-scrollbar,
 .editor-scrollable::-webkit-scrollbar {
@@ -961,6 +1125,90 @@ onMounted(() => {
 .editor-scrollable::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-tertiary);
 }
+
+/* ========== 小屏幕响应式优化 ========== */
+@media (max-width: 360px) {
+  .sidebar {
+    width: 40px !important;
+  }
+
+  .sidebar.collapsed {
+    width: 40px !important;
+  }
+
+  .sidebar-header {
+    padding: var(--spacing-xs) 0 !important;
+    justify-content: center !important;
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: auto !important;
+  }
+
+  .sidebar-title {
+    display: none !important;
+  }
+
+  .sidebar-actions {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: var(--spacing-xs) !important;
+    width: 100%;
+    align-items: center;
+  }
+
+  .sidebar-search {
+    display: none !important;
+  }
+
+  .sidebar-item-label {
+    display: none !important;
+  }
+
+  .sidebar-item-actions {
+    display: none !important;
+  }
+
+  .editor-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs);
+  }
+
+  .toolbar-left,
+  .toolbar-right {
+    width: 100%;
+  }
+
+  .toolbar-group {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-search {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .toolbar-filter {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .editor-header {
+    padding: var(--spacing-md);
+  }
+
+  .editor-title {
+    font-size: var(--font-size-lg);
+  }
+
+  .editor-title-actions {
+    opacity: 1 !important;
+  }
+
+  .editor-scrollable {
+    padding: var(--spacing-md);
+  }
+}
 </style>
-
-

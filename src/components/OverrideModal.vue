@@ -2,9 +2,9 @@
   <a-modal
     :open="visible"
     :title="rule ? '编辑Override' : '创建Override'"
-    :width="900"
+    :width="700"
     :ok-text="rule ? '更新' : '创建'"
-    :body-style="{ padding: '20px 24px', maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }"
+    :body-style="{ padding: '16px 20px', maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }"
     :centered="true"
     @ok="handleSave"
     @cancel="handleCancel"
@@ -13,18 +13,9 @@
     <a-form 
       :model="form" 
       layout="vertical"
-      :label-col="{ style: { marginBottom: '8px' } }"
+      :label-col="{ style: { marginBottom: '4px' } }"
       class="override-form"
     >
-      <a-form-item label="请求类型" class="form-item-compact">
-        <a-select v-model:value="form.requestType" disabled>
-          <a-select-option value="xhr">XHR/Fetch请求</a-select-option>
-        </a-select>
-        <div class="form-help">
-          当前版本专注于XHR/Fetch请求拦截
-        </div>
-      </a-form-item>
-
       <a-form-item
         label="规则名称"
         :validate-status="errors.name ? 'error' : ''"
@@ -34,7 +25,6 @@
         <a-input
           v-model:value="form.name"
           placeholder="为这个拦截规则起一个容易识别的名称"
-          size="large"
         />
       </a-form-item>
 
@@ -47,7 +37,6 @@
         <a-input
           v-model:value="form.urlPattern"
           placeholder="/api/user/info"
-          size="large"
         />
       </a-form-item>
 
@@ -59,7 +48,7 @@
       >
         <a-textarea
           v-model:value="form.responseJsonText"
-          :rows="8"
+          :rows="6"
           placeholder='{"code": 200, "message": "success", "data": {}}'
           :class="{ 'error-border': errors.responseJson }"
           class="json-textarea"
@@ -97,7 +86,6 @@ const visible = computed({
 })
 
 const form = ref({
-  requestType: 'xhr',
   name: '',
   urlPattern: '',
   responseJsonText: '',
@@ -116,7 +104,6 @@ watch(
   (rule) => {
     if (rule) {
       form.value = {
-        requestType: 'xhr',
         name: rule.name,
         urlPattern: rule.urlPattern,
         responseJsonText: JSON.stringify(rule.responseJson, null, 2),
@@ -124,7 +111,6 @@ watch(
       }
     } else {
       form.value = {
-        requestType: 'xhr',
         name: '',
         urlPattern: '',
         responseJsonText: '',
@@ -145,7 +131,23 @@ watch(
 watch(
   () => props.open,
   (open) => {
-    if (!open) {
+    if (open) {
+      // 弹窗打开时，如果 rule 为 null，重置表单
+      if (!props.rule) {
+        form.value = {
+          name: '',
+          urlPattern: '',
+          responseJsonText: '',
+          enabled: true,
+        }
+        errors.value = {
+          name: '',
+          urlPattern: '',
+          responseJson: '',
+        }
+      }
+    } else {
+      // 弹窗关闭时，清除错误
       errors.value = {
         name: '',
         urlPattern: '',
@@ -232,7 +234,7 @@ const handleCancel = () => {
 }
 
 :deep(.override-modal .ant-modal-header) {
-  padding: var(--spacing-lg) var(--spacing-xl);
+  padding: var(--spacing-md) var(--spacing-lg);
   border-bottom: 1px solid var(--color-border-primary);
   background: var(--color-bg-elevated);
   transition: background-color var(--transition-normal) var(--easing-ease-in-out),
@@ -246,7 +248,7 @@ const handleCancel = () => {
 }
 
 :deep(.override-modal .ant-modal-footer) {
-  padding: var(--spacing-md) var(--spacing-xl);
+  padding: var(--spacing-sm) var(--spacing-lg);
   border-top: 1px solid var(--color-border-primary);
   background: var(--color-bg-elevated);
   transition: background-color var(--transition-normal) var(--easing-ease-in-out),
@@ -258,7 +260,7 @@ const handleCancel = () => {
 }
 
 .form-item-compact {
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
 }
 
 .form-item-compact:last-child {
@@ -266,14 +268,14 @@ const handleCancel = () => {
 }
 
 .form-help {
-  margin-top: var(--spacing-sm);
+  margin-top: var(--spacing-xs);
   color: var(--color-text-tertiary);
   font-size: var(--font-size-xs);
   line-height: var(--line-height-normal);
 }
 
 .json-item {
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
 }
 
 .json-textarea {
