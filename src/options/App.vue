@@ -1,6 +1,7 @@
 <template>
   <a-config-provider :theme="themeConfig">
-    <div class="app-container">
+    <StyleProvider hash-priority="high">
+      <div class="app-container">
       <!-- VS Code 风格布局 -->
       <div class="workbench">
         <!-- 左侧侧边栏 -->
@@ -266,7 +267,8 @@
         @save="handleSaveRule"
         @cancel="handleCancelRule"
       />
-    </div>
+      </div>
+    </StyleProvider>
   </a-config-provider>
 </template>
 
@@ -282,7 +284,7 @@ import {
   DeleteOutlined,
   EditOutlined,
 } from "@ant-design/icons-vue";
-import { message, theme as antdTheme, Modal } from "ant-design-vue";
+import { message, theme as antdTheme, Modal, StyleProvider } from "ant-design-vue";
 import type { Project, InterceptionRule } from "@/types";
 import { StorageManager } from "@/utils/storage";
 import { useTheme, getThemeColors } from "@/theme/theme";
@@ -681,6 +683,18 @@ onUnmounted(() => {
   flex-direction: column;
   transition: background-color var(--transition-normal)
     var(--easing-ease-in-out);
+}
+
+/* 选项页面在新标签页中打开，使用全屏布局 */
+.app-container {
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+}
+
+.workbench {
+  height: 100%;
+  width: 100%;
 }
 
 /* ========== VS Code 工作台布局 ========== */

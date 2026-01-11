@@ -8,9 +8,9 @@
         v-for="project in projects"
         :key="project.id"
         :project="project"
-        @select="$emit('select', project)"
-        @toggle="$emit('toggle', project, $event)"
-        @delete="$emit('delete', project)"
+        @select="handleSelect(project)"
+        @toggle="(emittedProject, enabled) => handleToggle(emittedProject, enabled)"
+        @delete="handleDelete(project)"
       />
     </div>
   </div>
@@ -25,11 +25,23 @@ defineProps<{
   searchKeyword?: string
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   select: [project: Project]
   toggle: [project: Project, enabled: boolean]
   delete: [project: Project]
 }>()
+
+const handleSelect = (project: Project) => {
+  emit('select', project)
+}
+
+const handleToggle = (project: Project, enabled: boolean) => {
+  emit('toggle', project, enabled)
+}
+
+const handleDelete = (project: Project) => {
+  emit('delete', project)
+}
 </script>
 
 <style scoped>
