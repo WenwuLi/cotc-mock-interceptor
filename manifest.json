@@ -18,10 +18,17 @@
   },
   "options_ui": {
     "page": "options/index.html",
-    "open_in_tab": true
+    "open_in_tab": false
   },
   "action": {
     "default_title": "MockInterceptor"
-  }
+  },
+  "devtools_page": "devtools/devtools.html",
+  "web_accessible_resources": [
+    {
+      "resources": ["options/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }
 

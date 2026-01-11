@@ -100,8 +100,6 @@ async function syncRulesToChrome(): Promise<void> {
   if (chromeRules.length === 0) {
     nextRuleId = 1
   }
-  
-  console.log(`[MockInterceptor] 已同步 ${chromeRules.length} 条拦截规则`)
 }
 
 /**
@@ -109,7 +107,6 @@ async function syncRulesToChrome(): Promise<void> {
  */
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === 'local' && (changes.projects || changes.currentProjectId)) {
-    console.log('[MockInterceptor] 检测到配置变化，正在同步规则...')
     syncRulesToChrome().catch(console.error)
   }
 })
@@ -118,7 +115,6 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
  * 扩展安装或启动时初始化
  */
 chrome.runtime.onInstalled.addListener(() => {
-  console.log('[MockInterceptor] 扩展已安装/更新')
   syncRulesToChrome().catch(console.error)
 })
 

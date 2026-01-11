@@ -662,10 +662,14 @@ const handleClearList = async () => {
 
 // 生命周期
 onMounted(() => {
-  loadProjects();
-  checkScreenSize();
-  // 监听窗口大小变化
-  window.addEventListener("resize", checkScreenSize);
+  try {
+    loadProjects();
+    checkScreenSize();
+    // 监听窗口大小变化
+    window.addEventListener("resize", checkScreenSize);
+  } catch (e) {
+    console.error('App.vue 初始化失败:', e)
+  }
 });
 
 onUnmounted(() => {
