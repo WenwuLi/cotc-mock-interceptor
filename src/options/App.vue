@@ -94,9 +94,6 @@
               </div>
               <div v-if="filteredProjects.length === 0" class="sidebar-empty">
                 <p>暂无项目</p>
-                <a-button type="link" size="small" @click="handleCreateProject">
-                  创建项目
-                </a-button>
               </div>
             </div>
           </div>
@@ -679,26 +676,14 @@ onUnmounted(() => {
 
 <style scoped>
 .app-container {
-  height: 100vh;
-  width: 100vw;
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
   overflow: hidden;
   background: var(--color-bg-primary);
   display: flex;
   flex-direction: column;
-  transition: background-color var(--transition-normal)
-    var(--easing-ease-in-out);
-}
-
-/* 选项页面在新标签页中打开，使用全屏布局 */
-.app-container {
-  width: 100%;
-  height: 100%;
-  min-height: 100vh;
-}
-
-.workbench {
-  height: 100%;
-  width: 100%;
+  transition: background-color var(--transition-normal) var(--easing-ease-in-out);
 }
 
 /* ========== VS Code 工作台布局 ========== */
@@ -707,6 +692,8 @@ onUnmounted(() => {
   height: 100%;
   width: 100%;
   overflow: hidden;
+  flex: 1;
+  min-height: 0;
 }
 
 /* ========== 侧边栏 ========== */
@@ -752,6 +739,11 @@ onUnmounted(() => {
   color: var(--color-text-primary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  user-select: none;
+}
+
+.sidebar-title span {
+  display: inline-block;
 }
 
 .sidebar-actions {
@@ -810,8 +802,14 @@ onUnmounted(() => {
 }
 
 .sidebar-search {
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-md);
   border-bottom: 1px solid var(--color-border-primary);
+  background: var(--color-bg-elevated);
+}
+
+.sidebar-search .ant-input {
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
 }
 
 .sidebar.collapsed .sidebar-search {
@@ -821,7 +819,9 @@ onUnmounted(() => {
 .sidebar-list {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: var(--spacing-xs) 0;
+  min-height: 0;
 }
 
 .sidebar-item {
@@ -832,6 +832,23 @@ onUnmounted(() => {
   cursor: pointer;
   transition: all var(--transition-fast) var(--easing-ease-in-out);
   color: var(--color-text-primary);
+  position: relative;
+}
+
+.sidebar-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--color-primary);
+  opacity: 0;
+  transition: opacity var(--transition-fast) var(--easing-ease-in-out);
+}
+
+.sidebar-item.active::before {
+  opacity: 1;
 }
 
 .sidebar.collapsed .sidebar-item {
@@ -846,6 +863,7 @@ onUnmounted(() => {
 .sidebar-item.active {
   background: var(--color-primary-light);
   color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
 }
 
 .sidebar-item-icon {
@@ -915,14 +933,35 @@ onUnmounted(() => {
 }
 
 .sidebar-empty {
-  padding: var(--spacing-xl);
+  padding: var(--spacing-xl) var(--spacing-md);
   text-align: center;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
 }
 
 .sidebar-empty p {
-  margin: 0 0 var(--spacing-md) 0;
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+}
+
+.sidebar-empty .ant-btn-link {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  height: auto;
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.sidebar-empty .ant-btn-link:hover {
+  color: var(--color-primary-hover);
+  background: var(--color-primary-light);
+  border-radius: var(--radius-sm);
 }
 
 /* ========== 主编辑区 ========== */
@@ -1090,35 +1129,58 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-3xl);
+  padding: var(--spacing-2xl) var(--spacing-xl);
   text-align: center;
+  min-height: 300px;
 }
 
 .empty-icon {
-  width: 80px;
-  height: 80px;
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-tertiary);
+  width: 96px;
+  height: 96px;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-bg-tertiary) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40px;
-  color: var(--color-text-tertiary);
+  font-size: 48px;
+  color: var(--color-primary);
   margin-bottom: var(--spacing-xl);
+  box-shadow: 0 4px 12px var(--color-shadow-sm);
+  transition: transform var(--transition-normal) var(--easing-ease-in-out);
+}
+
+.editor-empty:hover .empty-icon {
+  transform: scale(1.05);
 }
 
 .empty-title {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
   margin: 0 0 var(--spacing-md) 0;
+  line-height: 1.3;
 }
 
 .empty-description {
   font-size: var(--font-size-base);
   color: var(--color-text-secondary);
   margin: 0 0 var(--spacing-xl) 0;
-  max-width: 400px;
+  max-width: 420px;
+  line-height: 1.6;
+}
+
+.editor-empty .ant-btn-primary {
+  height: 40px;
+  padding: 0 var(--spacing-xl);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  transition: all var(--transition-normal) var(--easing-ease-in-out);
+}
+
+.editor-empty .ant-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
 
 /* ========== 滚动条样式 ========== */

@@ -9,9 +9,8 @@ const app = document.getElementById('app')
 if (app) {
   const iframe = document.createElement('iframe')
   iframe.src = chrome.runtime.getURL('options/index.html')
-  iframe.style.width = '100%'
-  iframe.style.height = '100%'
-  iframe.style.border = 'none'
+  iframe.setAttribute('frameborder', '0')
+  iframe.setAttribute('scrolling', 'auto')
   app.appendChild(iframe)
 }
 
