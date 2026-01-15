@@ -4,10 +4,10 @@
   "version": "1.0.0",
   "description": "拦截浏览器请求并返回配置的模拟数据",
   "permissions": [
-    "declarativeNetRequest",
-    "declarativeNetRequestWithHostAccess",
+    "debugger",
     "storage",
-    "tabs"
+    "tabs",
+    "activeTab"
   ],
   "host_permissions": [
     "<all_urls>"
