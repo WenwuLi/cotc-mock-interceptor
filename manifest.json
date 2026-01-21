@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "cotc-mock-interceptor",
+  "version": "1.0.0",
+  "description": "拦截浏览器请求并返回配置的模拟数据",
+  "permissions": [
+    "debugger",
+    "storage",
+    "tabs",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+  "options_ui": {
+    "page": "options/index.html",
+    "open_in_tab": false
+  },
+  "action": {
+    "default_title": "cotc-mock-interceptor"
+  },
+  "devtools_page": "devtools/devtools.html",
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "options/*"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}
