@@ -40,6 +40,8 @@ export interface StorageData {
   projects: Project[]
   /** 当前选中的项目ID */
   currentProjectId?: string
+  /** 拦截器状态: 'idle' | 'loading' | 'ready' */
+  interceptorStatus?: 'idle' | 'loading' | 'ready'
 }
 
 /**
@@ -64,4 +66,3 @@ export interface ChromeRule {
     resourceTypes: chrome.declarativeNetRequest.ResourceType[]
   }
 }
-

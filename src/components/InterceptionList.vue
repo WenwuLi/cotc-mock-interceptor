@@ -30,6 +30,9 @@
               <a-button type="link" size="small" @click.stop="handleEdit(rule)">
                 编辑
               </a-button>
+              <a-button type="link" size="small" @click.stop="$emit('copy', rule)">
+                复制
+              </a-button>
               <a-button
                 type="link"
                 danger
@@ -57,6 +60,7 @@ defineProps<{
 const emit = defineEmits<{
   toggle: [rule: InterceptionRule, enabled: boolean];
   edit: [rule: InterceptionRule];
+  copy: [rule: InterceptionRule];
   delete: [rule: InterceptionRule];
 }>();
 

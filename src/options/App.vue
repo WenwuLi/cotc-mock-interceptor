@@ -107,7 +107,7 @@
               <div class="empty-icon">
                 <GlobalOutlined />
               </div>
-              <h2 class="empty-title">欢迎使用 cotc-mock-interceptor</h2>
+              <h2 class="empty-title">欢迎使用 MockInterceptor</h2>
               <p class="empty-description">
                 从左侧选择一个项目，或创建新项目开始
               </p>
@@ -213,12 +213,29 @@
                       <span class="meta-label">项目状态:</span>
                       <a-switch
                         :checked="currentProject.enabled"
-                        @change="(checked: boolean) => handleToggleProject(currentProject, checked)"
+                        @change="(checked: boolean) => handleToggleProject(currentProject!, checked)"
                         size="small"
                       />
                       <span class="meta-item">{{
                         currentProject.enabled ? "已启用" : "已禁用"
                       }}</span>
+                      <a-divider type="vertical" />
+                      <a-space :size="8">
+                        <a-upload
+                          :before-upload="handleImportProject"
+                          :show-upload-list="false"
+                          accept=".json"
+                        >
+                          <a-button size="small">
+                            <template #icon><ImportOutlined /></template>
+                            导入
+                          </a-button>
+                        </a-upload>
+                        <a-button size="small" @click="handleExportProject">
+                          <template #icon><ExportOutlined /></template>
+                          导出
+                        </a-button>
+                      </a-space>
                     </div>
                   </div>
                 </div>
@@ -227,6 +244,7 @@
                     :rules="filteredRules"
                     @toggle="handleToggleRule"
                     @edit="handleEditRule"
+                    @copy="handleCopyRule"
                     @delete="handleDeleteRule"
                   />
                 </div>
@@ -280,6 +298,8 @@ import {
   BulbOutlined,
   DeleteOutlined,
   EditOutlined,
+  ExportOutlined,
+  ImportOutlined,
 } from "@ant-design/icons-vue";
 import { message, theme as antdTheme, Modal, StyleProvider } from "ant-design-vue";
 import type { Project, InterceptionRule } from "@/types";
@@ -325,6 +345,7 @@ const activeTab = ref("");
 const isReady = ref(true);
 const isSmallScreen = ref(false);
 const sidebarCollapsed = ref(false);
+const interceptorStatus = ref<'idle' | 'loading' | 'ready'>('idle');
 
 // 弹窗状态
 const projectModalVisible = ref(false);
@@ -529,6 +550,33 @@ const handleEditRule = (rule: InterceptionRule) => {
   ruleModalVisible.value = true;
 };
 
+const handleCopyRule = async (rule: InterceptionRule) => {
+  if (!currentProject.value) {
+    return;
+  }
+
+  try {
+    const newRule: InterceptionRule = {
+      ...rule,
+      id: `rule_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name: `${rule.name} (copy)`,
+      createdAt: new Date().toISOString(),
+    };
+    
+    await StorageManager.addRule(currentProject.value.id, newRule);
+    message.success("规则复制成功");
+    await loadProjects();
+    if (currentProject.value) {
+      const updated = await StorageManager.getProjects();
+      currentProject.value =
+        updated.find((p) => p.id === currentProject.value!.id) || null;
+    }
+  } catch (error) {
+    console.error("复制规则失败:", error);
+    message.error("复制规则失败");
+  }
+};
+
 const handleSaveRule = async (rule: InterceptionRule) => {
   if (!currentProject.value) {
     return;
@@ -657,6 +705,89 @@ const handleClearList = async () => {
   }
 };
 
+// 导入导出逻辑
+const handleExportProject = () => {
+  if (!currentProject.value) return;
+  
+  const data = JSON.stringify(currentProject.value, null, 2);
+  const blob = new Blob([data], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  
+  const date = new Date().toISOString().split('T')[0];
+  link.href = url;
+  link.download = `MockInterceptor_${currentProject.value.name}_${date}.json`;
+  link.click();
+  
+  URL.revokeObjectURL(url);
+  message.success("项目导出成功");
+};
+
+const handleImportProject = (file: File) => {
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const content = e.target?.result as string;
+      const importedData = JSON.parse(content) as Project;
+      
+      // 基础验证
+      if (!importedData.name || !Array.isArray(importedData.rules)) {
+        throw new Error("无效的项目文件格式");
+      }
+
+      Modal.confirm({
+        title: "导入确认",
+        content: `确定要导入项目 "${importedData.name}" 吗？您可以选择将其作为新项目导入，或合并到当前项目中。`,
+        okText: "作为新项目",
+        cancelText: "合并到当前",
+        onOk: async () => {
+          // 作为新项目导入
+          const newProject: Project = {
+            ...importedData,
+            id: `project_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            createdAt: new Date().toISOString(),
+            enabled: false, // 默认不启用，防止冲突
+          };
+          await StorageManager.addProject(newProject);
+          message.success("已作为新项目导入");
+          await loadProjects();
+        },
+        onCancel: async () => {
+          if (!currentProject.value) return;
+          // 合并到当前项目
+          const existingRules = currentProject.value.rules;
+          const newRules = [...existingRules];
+          
+          importedData.rules.forEach(newRule => {
+            // 根据 URL 模式简单去重，如果需要更复杂的逻辑可以改
+            const isDuplicate = existingRules.some(r => r.urlPattern === newRule.urlPattern);
+            if (!isDuplicate) {
+              newRules.push({
+                ...newRule,
+                id: `rule_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                createdAt: new Date().toISOString()
+              });
+            }
+          });
+          
+          await StorageManager.updateProjectRules(currentProject.value.id, newRules);
+          message.success(`导入成功，共合并 ${newRules.length - existingRules.length} 条新规则`);
+          await loadProjects();
+          if (currentProject.value) {
+            const updated = await StorageManager.getProjects();
+            currentProject.value = updated.find((p) => p.id === currentProject.value!.id) || null;
+          }
+        }
+      });
+    } catch (err) {
+      console.error("导入失败:", err);
+      message.error("导入失败：文件格式不正确");
+    }
+  };
+  reader.readAsText(file);
+  return false; // 阻止自动上传
+};
+
 // 生命周期
 onMounted(() => {
   try {
@@ -664,6 +795,30 @@ onMounted(() => {
     checkScreenSize();
     // 监听窗口大小变化
     window.addEventListener("resize", checkScreenSize);
+
+    // 获取初始拦截器状态
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      chrome.storage.local.get(['interceptorStatus'], (res) => {
+        if (res.interceptorStatus) {
+          interceptorStatus.value = res.interceptorStatus as 'idle' | 'loading' | 'ready';
+        }
+      });
+
+      // 监听状态变化
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'local' && changes.interceptorStatus) {
+          interceptorStatus.value = changes.interceptorStatus.newValue as 'idle' | 'loading' | 'ready';
+          
+          if (interceptorStatus.value === 'loading') {
+            message.loading({ content: '正在激活拦截器...', key: 'interceptor_status', duration: 0 });
+          } else if (interceptorStatus.value === 'ready') {
+            message.success({ content: '拦截器已就绪', key: 'interceptor_status', duration: 2 });
+          } else if (interceptorStatus.value === 'idle') {
+            message.destroy('interceptor_status');
+          }
+        }
+      });
+    }
   } catch (e) {
     console.error('App.vue 初始化失败:', e)
   }

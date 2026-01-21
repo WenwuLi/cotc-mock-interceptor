@@ -20,6 +20,9 @@ class InterceptionManager {
    * 初始化
    */
   async init(): Promise<void> {
+    // 初始化拦截器状态
+    await chrome.storage.local.set({ interceptorStatus: 'idle' })
+
     // 加载规则
     await this.loadRules()
 
@@ -67,28 +70,51 @@ class InterceptionManager {
    * 加载所有启用的规则
    */
   async loadRules(): Promise<void> {
-    const projects = await StorageManager.getProjects()
-    const enabledProjects = projects.filter(p => p.enabled)
+    try {
+      // 设置状态为加载中
+      await chrome.storage.local.set({ interceptorStatus: 'loading' })
 
-    this.activeRules.clear()
+      const projects = await StorageManager.getProjects()
+      const enabledProjects = projects.filter(p => p.enabled)
 
-    // 收集所有启用的规则
-    for (const project of enabledProjects) {
-      for (const rule of project.rules) {
-        if (rule.enabled) {
-          this.activeRules.set(rule.id, rule)
+      this.activeRules.clear()
+
+      // 收集所有启用的规则
+      for (const project of enabledProjects) {
+        for (const rule of project.rules) {
+          if (rule.enabled) {
+            this.activeRules.set(rule.id, rule)
+          }
         }
       }
-    }
 
-    console.log(`[cotc-mock-interceptor] 已加载 ${this.activeRules.size} 个启用的拦截规则`)
+      console.log(`[MockInterceptor] 已加载 ${this.activeRules.size} 个启用的拦截规则`)
 
-    // 如果没有活跃规则，分离所有调试器
-    if (this.activeRules.size === 0) {
+      // 如果没有活跃规则，分离所有调试器
+      if (this.activeRules.size === 0) {
+        await this.detachAllDebuggers()
+        await chrome.storage.local.set({ interceptorStatus: 'idle' })
+      } else {
+        // 优化：主动检查所有符合条件的标签页并并行附加
+        const tabs = await chrome.tabs.query({})
+        const attachPromises = tabs
+          .filter(tab => tab.id && tab.url && tab.url.startsWith('http'))
+          .map(tab => this.attachDebugger(tab.id!))
+
+        await Promise.all(attachPromises)
+
+        // 为所有已附加的调试器会话更新拦截模式
+        await this.updateInterceptionPatterns()
+
+        // 设置状态为就绪
+        await chrome.storage.local.set({ interceptorStatus: 'ready' })
+        console.log(`[MockInterceptor] 拦截器已就绪`)
+      }
+    } catch (error) {
+      console.error(`[MockInterceptor] 加载规则失败:`, error)
+      await chrome.storage.local.set({ interceptorStatus: 'idle' })
+      // 如果加载失败，分离所有调试器以确保安全
       await this.detachAllDebuggers()
-    } else {
-      // 为所有已附加的调试器会话更新拦截模式
-      await this.updateInterceptionPatterns()
     }
   }
 
@@ -110,7 +136,7 @@ class InterceptionManager {
           return true
         } catch (error) {
           // 连接无效，重新附加
-          console.warn(`[cotc-mock-interceptor] 调试器连接无效，重新附加到标签页 ${tabId}`)
+          console.warn(`[MockInterceptor] 调试器连接无效，重新附加到标签页 ${tabId}`)
           this.debuggerSessions.delete(tabId)
         }
       }
@@ -127,15 +153,15 @@ class InterceptionManager {
       // 启用 Fetch 拦截
       await this.updateInterceptionPatternsForTab(tabId)
 
-      console.log(`[cotc-mock-interceptor] 调试器已附加到标签页 ${tabId}`)
+      console.log(`[MockInterceptor] 调试器已附加到标签页 ${tabId}`)
       return true
     } catch (error: any) {
       // 忽略"另一个调试器已附加"的错误
       if (error.message && error.message.includes('Another debugger')) {
-        console.log(`[cotc-mock-interceptor] 标签页 ${tabId} 已有其他调试器附加`)
+        console.log(`[MockInterceptor] 标签页 ${tabId} 已有其他调试器附加`)
         return false
       }
-      console.error(`[cotc-mock-interceptor] 附加调试器失败 (标签页 ${tabId}):`, error)
+      console.error(`[MockInterceptor] 附加调试器失败 (标签页 ${tabId}):`, error)
       return false
     }
   }
@@ -149,10 +175,10 @@ class InterceptionManager {
       if (debuggee) {
         await chrome.debugger.detach(debuggee)
         this.debuggerSessions.delete(tabId)
-        console.log(`[cotc-mock-interceptor] 调试器已从标签页 ${tabId} 分离`)
+        console.log(`[MockInterceptor] 调试器已从标签页 ${tabId} 分离`)
       }
     } catch (error) {
-      console.error(`[cotc-mock-interceptor] 分离调试器失败 (标签页 ${tabId}):`, error)
+      console.error(`[MockInterceptor] 分离调试器失败 (标签页 ${tabId}):`, error)
     }
   }
 
@@ -161,7 +187,7 @@ class InterceptionManager {
    */
   async detachAllDebuggers(): Promise<void> {
     const tabIds = Array.from(this.debuggerSessions.keys())
-    console.log(`[cotc-mock-interceptor] 分离所有调试器，共 ${tabIds.length} 个标签页`)
+    console.log(`[MockInterceptor] 分离所有调试器，共 ${tabIds.length} 个标签页`)
     for (const tabId of tabIds) {
       await this.detachDebugger(tabId)
     }
@@ -186,12 +212,8 @@ class InterceptionManager {
     }
 
     try {
-      // 先禁用 Fetch
-      try {
-        await chrome.debugger.sendCommand(debuggee, 'Fetch.disable')
-      } catch (error) {
-        // 忽略错误
-      }
+      // 优化：直接调用 Fetch.enable。
+      // 在 CDP 中，重复调用 Fetch.enable 会直接覆盖之前的 patterns，无需先 disable
 
       // 如果没有活跃规则，分离调试器
       if (this.activeRules.size === 0) {
@@ -221,9 +243,9 @@ class InterceptionManager {
         patterns: patterns
       })
 
-      console.log(`[cotc-mock-interceptor] 已为标签页 ${tabId} 启用 ${patterns.length} 个拦截模式`)
+      console.log(`[MockInterceptor] 已为标签页 ${tabId} 启用 ${patterns.length} 个拦截模式`)
     } catch (error) {
-      console.error(`[cotc-mock-interceptor] 更新拦截模式失败 (标签页 ${tabId}):`, error)
+      console.error(`[MockInterceptor] 更新拦截模式失败 (标签页 ${tabId}):`, error)
     }
   }
 
@@ -233,11 +255,14 @@ class InterceptionManager {
   findMatchingRule(url: string): InterceptionRule | null {
     // 提取URL路径部分
     let urlPath = ''
+    let urlPathOnly = ''
     try {
       const urlObj = new URL(url)
       urlPath = urlObj.pathname + urlObj.search
+      urlPathOnly = urlObj.pathname
     } catch (error) {
       urlPath = url
+      urlPathOnly = url.split('?')[0]
     }
 
     // 收集所有匹配的规则
@@ -245,51 +270,57 @@ class InterceptionManager {
 
     for (const rule of this.activeRules.values()) {
       let pattern = rule.urlPattern
+      let isMatch = false
+      let priority = 0
 
-      // 如果是路径模式（以/开头），提取路径部分
+      // 1. 完整URL包含规则
+      if (url.includes(pattern)) {
+        isMatch = true
+        priority = 500
+      }
+
+      // 2. 路径模式处理（以/开头）
       if (pattern.startsWith('/')) {
-        const patternPath = pattern.split('?')[0]
-        const urlPathOnly = urlPath.split('?')[0]
+        const patternPathOnly = pattern.split('?')[0]
 
-        // 精确匹配
-        if (pattern === urlPath) {
-          matchingRules.push({ rule, priority: 1000 })
-        }
-        // 路径匹配（忽略查询参数）
-        else if (patternPath === urlPathOnly) {
-          matchingRules.push({ rule, priority: 900 })
+        // 精确路径匹配（忽略查询参数）
+        if (patternPathOnly === urlPathOnly) {
+          isMatch = true
+          priority = 900
         }
         // 后缀匹配
-        else if (urlPathOnly.endsWith(patternPath)) {
-          matchingRules.push({ rule, priority: 800 })
+        else if (urlPathOnly.endsWith(patternPathOnly)) {
+          isMatch = true
+          priority = 800
         }
-        // 通配符匹配
-        else if (pattern.includes('*')) {
-          const regexPattern = pattern
-            .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
-            .replace(/\*/g, '.*')
-          const regex = new RegExp(`^${regexPattern}$`)
-          if (regex.test(urlPath)) {
-            matchingRules.push({ rule, priority: 700 })
-          }
+        // 包含匹配（URL路径中包含规则路径）
+        else if (urlPathOnly.includes(patternPathOnly)) {
+          isMatch = true
+          priority = 750
         }
-      } else {
-        // 完整URL模式匹配
-        if (pattern.includes('*')) {
-          const regexPattern = pattern
-            .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
-            .replace(/\*/g, '.*')
-          const regex = new RegExp(`^${regexPattern}$`)
-          if (regex.test(url)) {
-            matchingRules.push({ rule, priority: 600 })
-          }
-        } else if (url.includes(pattern)) {
-          matchingRules.push({ rule, priority: 500 })
+      }
+
+      // 3. 通配符正则匹配
+      if (pattern.includes('*')) {
+        const regexPattern = pattern
+          .replace(/[.+?^${}()|[\]\\]/g, '\\$&') // 转义正则特殊字符
+          .replace(/\\\*/g, '.*')               // 将 * 替换为 .*
+        const regex = new RegExp(`^${regexPattern}$`)
+
+        // 分别测试完整URL和路径部分
+        if (regex.test(url) || regex.test(urlPath) || regex.test(urlPathOnly)) {
+          isMatch = true
+          priority = Math.max(priority, 700)
         }
+      }
+
+      if (isMatch) {
+        matchingRules.push({ rule, priority })
       }
     }
 
     if (matchingRules.length === 0) {
+      console.log(`[MockInterceptor] 匹配失败: URL "${url}" 未命中任何规则`)
       return null
     }
 
@@ -304,16 +335,22 @@ class InterceptionManager {
   async handleRequestPaused(source: chrome.debugger.Debuggee, params: any): Promise<void> {
     const { requestId, request } = params
 
-    console.log(`[cotc-mock-interceptor] 拦截到请求: ${request.method} ${request.url}`)
+    console.log(`[MockInterceptor] 拦截到请求: ${request.method} ${request.url}`)
+
+    // 处理 OPTIONS 预检请求
+    if (request.method === 'OPTIONS') {
+      await this.handleOptionsRequest(source, requestId, request)
+      return
+    }
 
     // 查找匹配的规则
     const rule = this.findMatchingRule(request.url)
 
     if (rule) {
-      console.log(`[cotc-mock-interceptor] 找到匹配规则: ${rule.name} (${rule.urlPattern})`)
+      console.log(`[MockInterceptor] 找到匹配规则: ${rule.name} (${rule.urlPattern})`)
 
       // 应用拦截规则
-      await this.applyRule(source, requestId, rule)
+      await this.applyRule(source, requestId, rule, request)
     } else {
       // 继续正常请求
       try {
@@ -321,7 +358,65 @@ class InterceptionManager {
           requestId
         })
       } catch (error) {
-        console.error(`[cotc-mock-interceptor] 继续请求失败:`, error)
+        console.error(`[MockInterceptor] 继续请求失败:`, error)
+      }
+    }
+  }
+
+  /**
+   * 从请求头对象中获取特定头的值（忽略大小写）
+   */
+  private getHeaderValue(headers: any, name: string): string | undefined {
+    if (!headers) return undefined
+    const lowerName = name.toLowerCase()
+    const key = Object.keys(headers).find(k => k.toLowerCase() === lowerName)
+    return key ? headers[key] : undefined
+  }
+
+  /**
+   * 处理 OPTIONS 预检请求
+   */
+  async handleOptionsRequest(
+    source: chrome.debugger.Debuggee,
+    requestId: string,
+    request: any
+  ): Promise<void> {
+    try {
+      // 获取请求的 Origin
+      const origin = this.getHeaderValue(request.headers, 'origin')
+
+      // 设置 CORS 预检响应头
+      const responseHeaders = [
+        { name: 'Access-Control-Allow-Origin', value: origin || '*' },
+        { name: 'Access-Control-Allow-Methods', value: 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD' },
+        { name: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization, X-Requested-With, Accept, Origin' },
+        { name: 'Access-Control-Max-Age', value: '86400' },
+        { name: 'Content-Length', value: '0' }
+      ]
+
+      // 只有在有 Origin 时才设置 Credentials（避免与 * 冲突）
+      if (origin) {
+        responseHeaders.push({ name: 'Access-Control-Allow-Credentials', value: 'true' })
+      }
+
+      // 返回 OPTIONS 响应
+      await chrome.debugger.sendCommand(source, 'Fetch.fulfillRequest', {
+        requestId,
+        responseCode: 204,
+        responseHeaders,
+        body: ''
+      })
+
+      console.log(`[MockInterceptor] 已处理 OPTIONS 预检请求: ${request.url}`)
+    } catch (error) {
+      console.error(`[MockInterceptor] 处理 OPTIONS 请求失败:`, error)
+      // 如果失败，继续正常请求
+      try {
+        await chrome.debugger.sendCommand(source, 'Fetch.continueRequest', {
+          requestId
+        })
+      } catch (continueError) {
+        console.error(`[MockInterceptor] 继续请求失败:`, continueError)
       }
     }
   }
@@ -332,19 +427,29 @@ class InterceptionManager {
   async applyRule(
     source: chrome.debugger.Debuggee,
     requestId: string,
-    rule: InterceptionRule
+    rule: InterceptionRule,
+    request: any
   ): Promise<void> {
     try {
       // 将 JSON 对象转换为字符串
       const responseBody = JSON.stringify(rule.responseJson, null, 2)
 
-      // 设置响应头
-      const responseHeaders = [
-        { name: 'Content-Type', value: 'application/json' },
-        { name: 'Access-Control-Allow-Origin', value: '*' },
-        { name: 'Access-Control-Allow-Methods', value: 'GET, POST, PUT, DELETE, OPTIONS' },
-        { name: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' }
+      // 获取请求的 Origin（用于 CORS）
+      const origin = this.getHeaderValue(request.headers, 'origin')
+
+      // 设置响应头（包含完整的 CORS 头）
+      const responseHeaders: Array<{ name: string; value: string }> = [
+        { name: 'Content-Type', value: 'application/json; charset=utf-8' },
+        { name: 'Access-Control-Allow-Origin', value: origin || '*' },
+        { name: 'Access-Control-Allow-Methods', value: 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD' },
+        { name: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization, X-Requested-With, Accept, Origin' },
+        { name: 'Access-Control-Expose-Headers', value: 'Content-Length, Content-Type' }
       ]
+
+      // 只有在有 Origin 时才设置 Credentials（避免与 * 冲突）
+      if (origin) {
+        responseHeaders.push({ name: 'Access-Control-Allow-Credentials', value: 'true' })
+      }
 
       // 将响应体转换为 base64
       const bodyBase64 = btoa(unescape(encodeURIComponent(responseBody)))
@@ -357,16 +462,16 @@ class InterceptionManager {
         body: bodyBase64
       })
 
-      console.log(`[cotc-mock-interceptor] 已应用拦截规则: ${rule.name}`)
+      console.log(`[MockInterceptor] 已应用拦截规则: ${rule.name}`)
     } catch (error) {
-      console.error(`[cotc-mock-interceptor] 应用拦截规则失败:`, error)
+      console.error(`[MockInterceptor] 应用拦截规则失败:`, error)
       // 如果失败，继续正常请求
       try {
         await chrome.debugger.sendCommand(source, 'Fetch.continueRequest', {
           requestId
         })
       } catch (continueError) {
-        console.error(`[cotc-mock-interceptor] 继续请求失败:`, continueError)
+        console.error(`[MockInterceptor] 继续请求失败:`, continueError)
       }
     }
   }
@@ -389,4 +494,4 @@ chrome.debugger.onDetach.addListener((source, reason) => {
   }
 })
 
-console.log('[cotc-mock-interceptor] Service Worker 已加载')
+console.log('[MockInterceptor] Service Worker 已加载')
