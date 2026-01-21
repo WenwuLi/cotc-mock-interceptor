@@ -107,7 +107,7 @@
               <div class="empty-icon">
                 <GlobalOutlined />
               </div>
-              <h2 class="empty-title">欢迎使用 MockInterceptor</h2>
+              <h2 class="empty-title">欢迎使用 cotc-mock-interceptor</h2>
               <p class="empty-description">
                 从左侧选择一个项目，或创建新项目开始
               </p>

@@ -1,39 +1,42 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MockInterceptor - DevTools Panel</title>
-    <style>
-      /* DevTools 面板样式 */
-      html, body {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
-      }
-      
-      #app {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-      }
-      
-      iframe {
-        width: 100%;
-        height: 100%;
-        border: none;
-        flex: 1;
-        min-height: 0;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="./panel-main.ts"></script>
-  </body>
-</html>
 
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cotc-mock-interceptor - DevTools Panel</title>
+  <style>
+    /* DevTools 面板样式 */
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+    }
+
+    #app {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      flex: 1;
+      min-height: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app"></div>
+  <script type="module" src="./panel-main.ts"></script>
+</body>
+
+</html>

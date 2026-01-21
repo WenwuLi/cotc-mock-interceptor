@@ -1,4 +1,4 @@
-# MockInterceptor - Chrome 扩展请求拦截插件
+# cotc-mock-interceptor - Chrome 扩展请求拦截插件
 
 一个功能强大的 Chrome 浏览器扩展，用于拦截 XHR/Fetch 请求并返回配置的模拟数据。
 
@@ -22,7 +22,7 @@
 ## 项目结构
 
 ```
-mockInterceptor/
+cotc-mock-interceptor/
 ├── manifest.json              # Chrome 扩展配置文件
 ├── src/
 │   ├── background/            # 后台脚本（Service Worker）

@@ -3,7 +3,7 @@
 
 // 创建自定义面板
 chrome.devtools.panels.create(
-  'MockInterceptor', // 面板标题
+  'cotc-mock-interceptor', // 面板标题
   '', // 图标路径（留空使用默认图标）
   'devtools/panel.html', // 面板 HTML 文件路径
   (panel) => {

@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "MockInterceptor",
+  "name": "cotc-mock-interceptor",
   "version": "1.0.0",
   "description": "拦截浏览器请求并返回配置的模拟数据",
   "permissions": [
@@ -21,14 +21,17 @@
     "open_in_tab": false
   },
   "action": {
-    "default_title": "MockInterceptor"
+    "default_title": "cotc-mock-interceptor"
   },
   "devtools_page": "devtools/devtools.html",
   "web_accessible_resources": [
     {
-      "resources": ["options/*"],
-      "matches": ["<all_urls>"]
+      "resources": [
+        "options/*"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ]
 }
-
