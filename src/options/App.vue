@@ -100,7 +100,23 @@
         </aside>
 
         <!-- 主内容区 -->
-        <main class="editor-area">
+        <main
+          class="editor-area"
+          @dragover="handleDragOver"
+          @dragleave="handleDragLeave"
+          @drop="handleDrop"
+        >
+          <!-- 拖拽遮罩层 -->
+          <div v-if="isDragging" class="drop-zone-overlay">
+            <div class="drop-zone-content">
+              <CloudUploadOutlined
+                style="font-size: 48px; color: var(--color-primary)"
+              />
+              <h3 style="margin-top: 16px">释放文件以导入项目</h3>
+              <p style="color: var(--color-text-secondary)">支持 .json 格式的项目配置文件</p>
+            </div>
+          </div>
+
           <!-- 项目列表视图 -->
           <div v-if="!currentProject" class="editor-content">
             <div class="editor-empty">
@@ -246,6 +262,7 @@
                     @edit="handleEditRule"
                     @copy="handleCopyRule"
                     @delete="handleDeleteRule"
+                    @reorder="handleReorderRules"
                   />
                 </div>
               </div>
@@ -300,6 +317,7 @@ import {
   EditOutlined,
   ExportOutlined,
   ImportOutlined,
+  CloudUploadOutlined,
 } from "@ant-design/icons-vue";
 import { message, theme as antdTheme, Modal, StyleProvider } from "ant-design-vue";
 import type { Project, InterceptionRule } from "@/types";
@@ -346,6 +364,7 @@ const isReady = ref(true);
 const isSmallScreen = ref(false);
 const sidebarCollapsed = ref(false);
 const interceptorStatus = ref<'idle' | 'loading' | 'ready'>('idle');
+const isDragging = ref(false);
 
 // 弹窗状态
 const projectModalVisible = ref(false);
@@ -365,10 +384,6 @@ const filteredProjects = computed(() => {
   }
   const keyword = searchKeyword.value.toLowerCase();
   return projects.value.filter((p) => p.name.toLowerCase().includes(keyword));
-});
-
-const enabledRulesCount = computed(() => {
-  return currentProject.value?.rules.filter((r) => r.enabled).length || 0;
 });
 
 const filteredRules = computed(() => {
@@ -492,11 +507,6 @@ const checkScreenSize = () => {
   }
 };
 
-const handleBackToList = async () => {
-  await StorageManager.setCurrentProject(undefined);
-  currentProject.value = null;
-};
-
 const handleToggleProject = async (project: Project, enabled: boolean) => {
   await StorageManager.updateProject(project.id, { enabled });
   await loadProjects();
@@ -533,13 +543,6 @@ const handleDeleteProject = async (project: Project) => {
   }
 };
 
-const handleTabChange = (key: string) => {
-  const project = projects.value.find((p) => p.id === key);
-  if (project) {
-    handleSelectProject(project);
-  }
-};
-
 const handleCreateRule = () => {
   editingRule.value = null;
   ruleModalVisible.value = true;
@@ -556,8 +559,11 @@ const handleCopyRule = async (rule: InterceptionRule) => {
   }
 
   try {
+    // 使用深拷贝确保数据纯净，切断响应式引用
+    const cleanRule = JSON.parse(JSON.stringify(rule));
+    
     const newRule: InterceptionRule = {
-      ...rule,
+      ...cleanRule,
       id: `rule_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name: `${rule.name} (copy)`,
       createdAt: new Date().toISOString(),
@@ -655,6 +661,60 @@ const handleDeleteRule = async (rule: InterceptionRule) => {
   }
 };
 
+const handleReorderRules = async (newFilteredRules: InterceptionRule[]) => {
+  if (!currentProject.value) {
+    return;
+  }
+
+  try {
+    // 如果当前有过滤或搜索条件，需要特殊处理
+    if (filterType.value !== "all" || ruleSearchKeyword.value) {
+      // 获取完整规则列表
+      const allRules = currentProject.value.rules;
+      
+      // 创建一个 Map 来存储过滤后规则的新顺序
+      const filteredRulesMap = new Map(
+        newFilteredRules.map((rule, index) => [rule.id, index])
+      );
+      
+      // 分离过滤后的规则和未过滤的规则
+      const filteredSet = new Set(newFilteredRules.map(r => r.id));
+      const unfilteredRules = allRules.filter(r => !filteredSet.has(r.id));
+      
+      // 合并：保持未过滤规则的位置，插入重排序后的过滤规则
+      // 策略：将过滤后的规则按新顺序排列，然后将未过滤的规则插入原位置
+      const result: InterceptionRule[] = [];
+      let filteredIndex = 0;
+      
+      for (const rule of allRules) {
+        if (filteredSet.has(rule.id)) {
+          // 这是过滤后的规则，使用新顺序中的对应规则
+          if (filteredIndex < newFilteredRules.length) {
+            result.push(newFilteredRules[filteredIndex]);
+            filteredIndex++;
+          }
+        } else {
+          // 这是未被过滤的规则，保持在当前位置
+          result.push(rule);
+        }
+      }
+      
+      await StorageManager.updateProjectRules(currentProject.value.id, result);
+      currentProject.value.rules = result;
+    } else {
+      // 没有过滤条件，直接保存新顺序
+      await StorageManager.updateProjectRules(currentProject.value.id, newFilteredRules);
+      currentProject.value.rules = newFilteredRules;
+    }
+    
+    // 提示用户
+    message.success("顺序已保存");
+  } catch (error) {
+    console.error("保存顺序失败:", error);
+    message.error("保存顺序失败");
+  }
+};
+
 const handleEnableAll = async () => {
   if (!currentProject.value) {
     return;
@@ -706,6 +766,37 @@ const handleClearList = async () => {
 };
 
 // 导入导出逻辑
+const handleDragOver = (e: DragEvent) => {
+  e.preventDefault();
+  e.stopPropagation();
+  // 只有当拖拽的是文件时才激活
+  if (e.dataTransfer?.types.includes("Files")) {
+    isDragging.value = true;
+  }
+};
+
+const handleDragLeave = (e: DragEvent) => {
+  e.preventDefault();
+  e.stopPropagation();
+  isDragging.value = false;
+};
+
+const handleDrop = (e: DragEvent) => {
+  e.preventDefault();
+  e.stopPropagation();
+  isDragging.value = false;
+
+  const files = e.dataTransfer?.files;
+  if (files && files.length > 0) {
+    const file = files[0];
+    if (file.name.endsWith(".json")) {
+      handleImportProject(file);
+    } else {
+      message.error("只支持 .json 格式的项目文件");
+    }
+  }
+};
+
 const handleExportProject = () => {
   if (!currentProject.value) return;
   
@@ -1126,6 +1217,36 @@ onUnmounted(() => {
   flex-direction: column;
   overflow: hidden;
   background: var(--color-bg-primary);
+  position: relative;
+}
+
+/* 拖拽导入遮罩 */
+.drop-zone-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--color-overlay);
+  backdrop-filter: blur(4px);
+  border: 2px dashed var(--color-primary);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  transition: all var(--transition-normal);
+  margin: var(--spacing-md);
+  border-radius: var(--radius-lg);
+}
+
+.drop-zone-content {
+  text-align: center;
+  background: var(--color-bg-elevated);
+  padding: var(--spacing-2xl);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 24px var(--color-shadow-md);
+  border: 1px solid var(--color-border-primary);
 }
 
 .editor-content {

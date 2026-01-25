@@ -48,6 +48,27 @@ cotc-mock-interceptor/
 └── vite.config.ts             # Vite 配置
 ```
 
+## 安装使用
+
+### 从 Release 下载
+
+如果您只是想使用本扩展，无需从源码构建，可以直接下载最新版本：
+
+1. 访问 [release 文件夹](https://github.com/WenwuLi/cotc-mock-interceptor/tree/master/release)
+2. 选择最新的 `cotc-mock-interceptor_YYYY-MM-DDTHH-mm-ss.zip` 文件
+3. 点击文件名进入详情页，然后点击"Download"按钮下载
+
+**安装步骤**：
+
+1. 解压下载的 ZIP 文件到本地任意目录
+2. 打开 Chrome 浏览器，访问 `chrome://extensions/`
+3. 开启"开发者模式"（右上角开关）
+4. 点击"加载已解压的扩展程序"
+5. 选择刚才解压后的文件夹
+6. 安装完成！点击扩展图标即可开始使用
+
+> **提示**: 每次 Chrome 浏览器更新或重启后，扩展仍会保持启用状态，无需重新安装。
+
 ## 开发指南
 
 ### 安装依赖

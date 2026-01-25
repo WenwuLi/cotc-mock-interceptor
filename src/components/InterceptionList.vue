@@ -3,13 +3,16 @@
     <div v-if="rules.length === 0" class="empty-state">
       <a-empty description="暂无拦截规则，点击上方按钮创建新规则" />
     </div>
-    <div v-else class="rule-list">
+    <div v-else class="rule-list" ref="listRef">
       <div
         v-for="rule in rules"
         :key="rule.id"
         class="rule-item"
         :class="{ enabled: rule.enabled }"
       >
+        <div class="drag-handle">
+          <HolderOutlined />
+        </div>
         <div class="rule-checkbox">
           <a-checkbox
             :checked="rule.enabled"
@@ -50,10 +53,13 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from "vue";
 import { Modal } from "ant-design-vue";
+import { HolderOutlined } from "@ant-design/icons-vue";
+import Sortable from "sortablejs";
 import type { InterceptionRule } from "@/types";
 
-defineProps<{
+const props = defineProps<{
   rules: InterceptionRule[];
 }>();
 
@@ -62,7 +68,49 @@ const emit = defineEmits<{
   edit: [rule: InterceptionRule];
   copy: [rule: InterceptionRule];
   delete: [rule: InterceptionRule];
+  reorder: [newRules: InterceptionRule[]];
 }>();
+
+const listRef = ref<HTMLElement | null>(null);
+let sortableInstance: Sortable | null = null;
+
+// 初始化 Sortable
+const initSortable = () => {
+  if (listRef.value && !sortableInstance) {
+    sortableInstance = Sortable.create(listRef.value, {
+      handle: ".drag-handle",
+      animation: 150,
+      ghostClass: "sortable-ghost",
+      chosenClass: "sortable-chosen",
+      dragClass: "sortable-drag",
+      onEnd: (evt) => {
+        const { oldIndex, newIndex } = evt;
+        if (oldIndex !== undefined && newIndex !== undefined && oldIndex !== newIndex) {
+          const newRules = [...props.rules];
+          const [movedItem] = newRules.splice(oldIndex, 1);
+          newRules.splice(newIndex, 0, movedItem);
+          emit("reorder", newRules);
+        }
+      },
+    });
+  }
+};
+
+// 销毁 Sortable
+const destroySortable = () => {
+  if (sortableInstance) {
+    sortableInstance.destroy();
+    sortableInstance = null;
+  }
+};
+
+onMounted(() => {
+  initSortable();
+});
+
+onUnmounted(() => {
+  destroySortable();
+});
 
 const handleEdit = (rule: InterceptionRule) => {
   emit("edit", rule);
@@ -111,6 +159,48 @@ const handleDelete = (rule: InterceptionRule) => {
 .rule-item.enabled {
   background: var(--color-success-light);
   border-left: 3px solid var(--color-success);
+}
+
+.drag-handle {
+  margin-right: var(--spacing-sm);
+  cursor: grab;
+  color: var(--color-text-tertiary);
+  display: flex;
+  align-items: center;
+  padding-top: 2px;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.rule-item:hover .drag-handle {
+  color: var(--color-primary);
+}
+
+.sortable-ghost {
+  opacity: 0.4;
+  background: var(--color-primary-light) !important;
+}
+
+/* 选中准备拖动的元素 */
+.sortable-chosen {
+  opacity: 1 !important;
+  background: var(--color-bg-secondary) !important;
+  border-color: var(--color-primary) !important;
+  cursor: grabbing !important;
+}
+
+/* 正在拖动的元素（跟随鼠标的元素） */
+.sortable-drag {
+  opacity: 1 !important;
+  background: var(--color-bg-primary) !important;
+  border: 2px solid var(--color-primary) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 
+              0 0 0 1px var(--color-primary) !important;
+  transform: rotate(2deg);
+  transition: none !important;
+  cursor: grabbing !important;
 }
 
 .rule-checkbox {
