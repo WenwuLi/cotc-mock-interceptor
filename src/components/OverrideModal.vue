@@ -46,13 +46,31 @@
         :help="errors.responseJson || '输入要返回的JSON响应内容,将替换原始服务器响应'"
         class="form-item-compact json-item"
       >
-        <a-textarea
-          v-model:value="form.responseJsonText"
-          :rows="6"
-          placeholder='{"code": 200, "message": "success", "data": {}}'
-          :class="{ 'error-border': errors.responseJson }"
-          class="json-textarea"
-        />
+        <div class="editor-container" :class="{ 'error-border': errors.responseJson, 'is-fullscreen': isFullscreen }">
+          <div class="editor-toolbar">
+            <a-space>
+              <a-button size="small" type="link" @click="toggleFullscreen" class="toolbar-btn">
+                <template #icon>
+                  <FullscreenOutlined v-if="!isFullscreen" />
+                  <FullscreenExitOutlined v-else />
+                </template>
+                {{ isFullscreen ? '退出全屏' : '全屏' }}
+              </a-button>
+              <a-button size="small" type="link" @click="handleFormat" class="toolbar-btn">格式化</a-button>
+              <a-button size="small" type="link" @click="handleMinify" class="toolbar-btn">压缩</a-button>
+            </a-space>
+          </div>
+          <codemirror
+            v-model="form.responseJsonText"
+            placeholder='{"code": 200, "message": "success", "data": {}}'
+            :style="{ height: isFullscreen ? 'calc(100vh - 32px)' : '260px' }"
+            :autofocus="true"
+            :indent-with-tab="true"
+            :tab-size="2"
+            :extensions="extensions"
+            class="json-editor"
+          />
+        </div>
       </a-form-item>
 
       <a-form-item class="form-item-compact checkbox-item">
@@ -68,6 +86,12 @@
 import { ref, watch, computed } from 'vue'
 import type { InterceptionRule } from '@/types'
 import { validatePattern } from '@/utils/urlMatcher'
+import { Codemirror } from 'vue-codemirror'
+import { json } from '@codemirror/lang-json'
+import { oneDark } from '@codemirror/theme-one-dark'
+import { message } from 'ant-design-vue'
+import { useTheme } from '@/theme/theme'
+import { FullscreenOutlined, FullscreenExitOutlined } from '@ant-design/icons-vue'
 
 const props = defineProps<{
   open: boolean
@@ -80,10 +104,17 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
+const { theme } = useTheme()
+const isFullscreen = ref(false)
+
 const visible = computed({
   get: () => props.open,
   set: (value) => emit('update:open', value),
 })
+
+const toggleFullscreen = () => {
+  isFullscreen.value = !isFullscreen.value
+}
 
 const form = ref({
   name: '',
@@ -97,6 +128,41 @@ const errors = ref({
   urlPattern: '',
   responseJson: '',
 })
+
+// CodeMirror 扩展配置：根据主题动态切换
+const extensions = computed(() => {
+  const exts: any[] = [json()]
+  if (theme.value === 'dark') {
+    exts.push(oneDark)
+  }
+  return exts
+})
+
+/**
+ * 格式化 JSON
+ */
+const handleFormat = () => {
+  try {
+    if (!form.value.responseJsonText) return
+    const obj = JSON.parse(form.value.responseJsonText)
+    form.value.responseJsonText = JSON.stringify(obj, null, 2)
+  } catch (e) {
+    message.error('JSON 格式不正确，无法格式化')
+  }
+}
+
+/**
+ * 压缩 JSON
+ */
+const handleMinify = () => {
+  try {
+    if (!form.value.responseJsonText) return
+    const obj = JSON.parse(form.value.responseJsonText)
+    form.value.responseJsonText = JSON.stringify(obj)
+  } catch (e) {
+    message.error('JSON 格式不正确，无法压缩')
+  }
+}
 
 // 监听 rule 变化，初始化表单
 watch(
@@ -153,6 +219,7 @@ watch(
         urlPattern: '',
         responseJson: '',
       }
+      isFullscreen.value = false
     }
   }
 )
@@ -278,20 +345,79 @@ const handleCancel = () => {
   margin-bottom: var(--spacing-sm);
 }
 
-.json-textarea {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-relaxed);
-  resize: vertical;
+.editor-container {
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
   background: var(--color-bg-secondary);
-  color: var(--color-text-primary);
-  border-color: var(--color-border-primary);
   transition: all var(--transition-normal) var(--easing-ease-in-out);
+  position: relative;
 }
 
-.json-textarea:focus {
+.editor-container.is-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  border-radius: 0;
+  background: var(--color-bg-elevated);
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-container:focus-within {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+.editor-container.is-fullscreen .json-editor {
+  flex: 1;
+}
+
+.editor-container.is-fullscreen :deep(.cm-editor) {
+  height: 100% !important;
+}
+
+.editor-toolbar {
+  padding: 2px 8px;
+  background: var(--color-bg-tertiary);
+  border-bottom: 1px solid var(--color-border-primary);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.toolbar-btn {
+  font-size: var(--font-size-xs);
+  padding: 0 4px;
+  height: 24px;
+  color: var(--color-text-secondary);
+}
+
+.toolbar-btn:hover {
+  color: var(--color-primary);
+}
+
+.json-editor {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+  font-size: var(--font-size-sm);
+  background: transparent !important;
+}
+
+:deep(.cm-editor) {
+  outline: none !important;
+  background: transparent !important;
+}
+
+:deep(.cm-scroller) {
+  font-family: inherit !important;
+}
+
+:deep(.cm-focused) {
+  outline: none !important;
 }
 
 .checkbox-item {
