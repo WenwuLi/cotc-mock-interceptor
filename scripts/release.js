@@ -1,4 +1,4 @@
-import { createWriteStream, mkdirSync, existsSync } from 'fs';
+import { mkdirSync, existsSync, readFileSync } from 'fs';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { join, resolve } from 'path';
@@ -21,18 +21,27 @@ async function createRelease() {
         process.exit(1);
     }
 
+    // 从 package.json 读取版本号
+    const packageJsonPath = join(rootDir, 'package.json');
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+    const version = packageJson.version;
+
+    if (!version || version === '0.0.0') {
+        console.warn('⚠️  Warning: Version is 0.0.0, consider updating package.json version first.');
+    }
+
     // 创建 release 目录（如果不存在）
     if (!existsSync(releaseDir)) {
         mkdirSync(releaseDir, { recursive: true });
         console.log('✅ Created release directory');
     }
 
-    // 生成文件名（包含时间戳）
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-    const zipFileName = `cotc-mock-interceptor_${timestamp}.zip`;
+    // 使用版本号生成文件名
+    const zipFileName = `cotc-mock-interceptor-v${version}.zip`;
     const zipFilePath = join(releaseDir, zipFileName);
 
     console.log('📦 Creating release package...');
+    console.log(`   Version: v${version}`);
     console.log(`   Source: ${distDir}`);
     console.log(`   Output: ${zipFilePath}`);
 
@@ -44,7 +53,7 @@ async function createRelease() {
         console.log('✅ Release package created successfully!');
         console.log(`📍 Location: ${zipFilePath}`);
         console.log('');
-        console.log('💡 You can now upload this file to GitHub Releases');
+        console.log(`💡 Upload this file to GitHub Releases with tag: v${version}`);
     } catch (error) {
         console.error('❌ Error creating zip file:', error.message);
         process.exit(1);
