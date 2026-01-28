@@ -164,49 +164,6 @@ cotc-mock-interceptor/
 
 > **提示**: 每次 Chrome 浏览器更新或重启后，扩展仍会保持启用状态，无需重新安装。
 
-## 开发指南
-
-### 安装依赖
-
-```bash
-npm install
-```
-
-### 开发模式
-
-```bash
-npm run dev
-```
-
-### 构建扩展
-
-```bash
-npm run build
-```
-
-构建完成后，`dist` 目录将包含所有扩展文件。
-
-### 打包发布
-
-```bash
-npm run release
-```
-
-该命令会自动执行以下操作：
-1. 运行 `npm run build` 构建项目
-2. 将 `dist` 目录打包成 ZIP 文件
-3. 保存到 `release` 目录，文件名格式为 `cotc-mock-interceptor_YYYY-MM-DDTHH-mm-ss.zip`
-
-**发布到 GitHub Releases**：
-
-1. 在 GitHub 仓库页面，点击 "Releases" → "Create a new release"
-2. 选择或创建版本标签（如 `v1.0.0`）
-3. 填写 Release 标题和更新说明
-4. 在 "Attach binaries" 区域上传刚才生成的 ZIP 文件
-5. 点击 "Publish release" 发布
-
-> **注意**：`release/` 目录已添加到 `.gitignore`，不会提交到代码仓库。构建产物应通过 GitHub Releases 分发。
-
 ### 加载扩展到 Chrome
 
 1. 打开 Chrome 浏览器
