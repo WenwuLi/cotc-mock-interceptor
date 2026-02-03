@@ -16,12 +16,22 @@
     "service_worker": "background/service-worker.js",
     "type": "module"
   },
+  "icons": {
+    "16": "COTC_icon.png",
+    "32": "COTC_icon.png",
+    "48": "COTC_icon.png",
+    "128": "COTC_icon.png"
+  },
   "options_ui": {
     "page": "options/index.html",
     "open_in_tab": false
   },
   "action": {
-    "default_title": "cotc-mock-interceptor"
+    "default_title": "cotc-mock-interceptor",
+    "default_icon": {
+      "16": "COTC_icon.png",
+      "32": "COTC_icon.png"
+    }
   },
   "devtools_page": "devtools/devtools.html",
   "web_accessible_resources": [

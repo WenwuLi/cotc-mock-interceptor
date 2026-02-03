@@ -63,7 +63,7 @@
           <codemirror
             v-model="form.responseJsonText"
             placeholder='{"code": 200, "message": "success", "data": {}}'
-            :style="{ height: isFullscreen ? 'calc(100vh - 32px)' : '260px' }"
+            :style="isFullscreen ? {} : { height: '260px' }"
             :autofocus="true"
             :indent-with-tab="true"
             :tab-size="2"
@@ -376,10 +376,25 @@ const handleCancel = () => {
 
 .editor-container.is-fullscreen .json-editor {
   flex: 1;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+  display: flex !important;
+  flex-direction: column;
 }
 
 .editor-container.is-fullscreen :deep(.cm-editor) {
-  height: 100% !important;
+  flex: 1;
+  min-height: 0;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-container.is-fullscreen :deep(.cm-scroller) {
+  flex: 1;
+  min-height: 0;
+  overflow: auto !important;
 }
 
 .editor-toolbar {
@@ -388,6 +403,7 @@ const handleCancel = () => {
   border-bottom: 1px solid var(--color-border-primary);
   display: flex;
   justify-content: flex-end;
+  flex-shrink: 0;
 }
 
 .toolbar-btn {
