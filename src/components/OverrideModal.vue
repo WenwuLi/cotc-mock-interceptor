@@ -4,6 +4,7 @@
     :title="rule ? '编辑Override' : '创建Override'"
     :width="700"
     :ok-text="rule ? '更新' : '创建'"
+    cancel-text="取消"
     :body-style="{ padding: '16px 20px', maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }"
     :centered="true"
     @ok="handleSave"

@@ -275,6 +275,8 @@
       <a-modal
         v-model:open="projectModalVisible"
         :title="editingProject ? '编辑项目' : '新建项目'"
+        ok-text="确认"
+        cancel-text="取消"
         @ok="handleSaveProject"
         @cancel="handleCancelProject"
       >
@@ -287,6 +289,7 @@
             <a-input
               v-model:value="projectForm.name"
               placeholder="请输入项目名称"
+              @pressEnter="handleSaveProject"
             />
           </a-form-item>
         </a-form>
@@ -901,11 +904,11 @@ onMounted(() => {
           interceptorStatus.value = changes.interceptorStatus.newValue as 'idle' | 'loading' | 'ready';
           
           if (interceptorStatus.value === 'loading') {
-            message.loading({ content: '正在激活拦截器...', key: 'interceptor_status', duration: 0 });
+            console.log('[拦截器] 正在激活拦截器...');
           } else if (interceptorStatus.value === 'ready') {
-            message.success({ content: '拦截器已就绪', key: 'interceptor_status', duration: 2 });
+            console.log('[拦截器] 拦截器已就绪');
           } else if (interceptorStatus.value === 'idle') {
-            message.destroy('interceptor_status');
+            console.log('[拦截器] 已空闲');
           }
         }
       });
